@@ -126,8 +126,7 @@ Portfolio Backtester/
 │   │   └── components/         Header, TerminalControls, HorizonChart, MetricsGrid
 │   ├── package.json
 │   └── run.bat                 Frontend launch script (Windows)
-├── start.bat                    Launches backend and frontend together
-├── stop.bat / stop.ps1          Stops both services
+├── run.sh                       Starts/stops backend and frontend together
 └── README.md
 ```
 
@@ -182,13 +181,19 @@ The UI will be available at `http://localhost:5180`.
 
 ### Running Both Together
 
-On Windows, `start.bat` in the project root launches both services in minimized windows and opens the UI in your default browser:
+`run.sh` in the project root launches both services in the background:
 
 ```bash
-start.bat
+./run.sh start
 ```
 
-Use `stop.bat` (or `stop.ps1`) to shut both services down.
+Stop both services with:
+
+```bash
+./run.sh stop
+```
+
+Logs are written to `backend.log` and `frontend.log` in the project root.
 
 ## Keeping the Data Fresh
 
