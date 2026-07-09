@@ -1,3 +1,9 @@
+# Local-only Windows desktop-shortcut launchers (kept off GitHub; run.sh is
+# the tracked cross-platform entry point)
+/start.bat
+/stop.bat
+/stop.ps1
+
 # Claude Code local tooling config
 .claude/
 
