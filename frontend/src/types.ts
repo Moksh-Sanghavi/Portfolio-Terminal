@@ -8,13 +8,17 @@ export interface TickerInfo {
   row_count: number;
 }
 
-export type HorizonKey = "3M" | "6M" | "12M" | "3Y" | "5Y";
+export type HorizonKey = "3M" | "6M" | "12M" | "3Y" | "5Y" | "MAX";
 
 export interface HorizonResult {
   portfolio_return: number | "Data Unavailable";
   nifty_return: number | "Data Unavailable";
-  portfolio_cagr?: number;
-  nifty_cagr?: number;
+  portfolio_cagr?: number | null;
+  nifty_cagr?: number | null;
+  portfolio_sharpe?: number | null;
+  nifty_sharpe?: number | null;
+  portfolio_max_drawdown?: number | null;
+  nifty_max_drawdown?: number | null;
   target_date: string;
   actual_trading_day?: string;
   portfolio_value?: number;

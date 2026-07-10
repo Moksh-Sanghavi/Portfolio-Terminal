@@ -19,6 +19,19 @@ import backtest_engine as be
 
 app = FastAPI(title="Portfolio Terminal API")
 
+
+def _sanitize_nan(value):
+    """Recursively replace float NaN with None so the response is valid JSON
+    (json.dumps emits the non-standard `NaN` token otherwise, which breaks
+    JSON.parse on the frontend)."""
+    if isinstance(value, float) and pd.isna(value):
+        return None
+    if isinstance(value, dict):
+        return {k: _sanitize_nan(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_sanitize_nan(v) for v in value]
+    return value
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5180", "http://127.0.0.1:5180"],
@@ -137,6 +150,6 @@ def run_backtest(req: BacktestRequest):
         "startDateRequested": horizon_results["start_date_requested"],
         "startDateActual": horizon_results["start_date_actual_trading_day"],
         "lastAvailableDate": wealth_df.index.max().strftime("%Y-%m-%d"),
-        "horizons": horizon_results["horizons"],
+        "horizons": _sanitize_nan(horizon_results["horizons"]),
         "assetBreakdownByHorizon": asset_breakdown_by_horizon,
     }

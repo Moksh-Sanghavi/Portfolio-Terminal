@@ -10,6 +10,8 @@ function MetricBox({
   title,
   returnPct,
   cagrPct,
+  sharpe,
+  maxDrawdownPct,
   value,
   unavailable,
   tone,
@@ -17,6 +19,8 @@ function MetricBox({
   title: string;
   returnPct: number | null;
   cagrPct: number | null;
+  sharpe: number | null;
+  maxDrawdownPct: number | null;
   value: number | undefined;
   unavailable: boolean;
   tone: "positive" | "negative" | "neutral";
@@ -63,6 +67,22 @@ function MetricBox({
               {cagrPct.toFixed(2)}%
             </div>
           )}
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-zinc-400">
+            <div className="rounded-lg border border-zinc-800 bg-zinc-950/40 px-2.5 py-1.5">
+              <div className="text-xs uppercase tracking-wider text-zinc-500 font-bold">Sharpe</div>
+              <div className="tabular-nums text-zinc-200">
+                {sharpe === null || Number.isNaN(sharpe) ? "-" : sharpe.toFixed(2)}
+              </div>
+            </div>
+            <div className="rounded-lg border border-zinc-800 bg-zinc-950/40 px-2.5 py-1.5">
+              <div className="text-xs uppercase tracking-wider text-zinc-500 font-bold">Max Drawdown</div>
+              <div className="tabular-nums text-rose-400">
+                {maxDrawdownPct === null || Number.isNaN(maxDrawdownPct)
+                  ? "-"
+                  : `${maxDrawdownPct.toFixed(2)}%`}
+              </div>
+            </div>
+          </div>
         </>
       )}
     </div>
@@ -118,6 +138,15 @@ export default function MetricsGrid({ horizonResult, assetBreakdown }: MetricsGr
     dataUnavailable || horizonResult.nifty_cagr === undefined ? null : horizonResult.nifty_cagr * 100;
   const alpha = pr !== null && nr !== null ? pr - nr : null;
 
+  const portfolioSharpe = dataUnavailable ? null : horizonResult.portfolio_sharpe ?? null;
+  const niftySharpe = dataUnavailable ? null : horizonResult.nifty_sharpe ?? null;
+  const portfolioMaxDrawdown =
+    dataUnavailable || horizonResult.portfolio_max_drawdown == null
+      ? null
+      : horizonResult.portfolio_max_drawdown * 100;
+  const niftyMaxDrawdown =
+    dataUnavailable || horizonResult.nifty_max_drawdown == null ? null : horizonResult.nifty_max_drawdown * 100;
+
   return (
     <div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -125,6 +154,8 @@ export default function MetricsGrid({ horizonResult, assetBreakdown }: MetricsGr
           title="Custom Portfolio"
           returnPct={pr}
           cagrPct={portfolioCagr}
+          sharpe={portfolioSharpe}
+          maxDrawdownPct={portfolioMaxDrawdown}
           value={horizonResult.portfolio_value}
           unavailable={dataUnavailable}
           tone={pr !== null && pr >= 0 ? "positive" : "negative"}
@@ -133,6 +164,8 @@ export default function MetricsGrid({ horizonResult, assetBreakdown }: MetricsGr
           title="Nifty 50 Index"
           returnPct={nr}
           cagrPct={niftyCagr}
+          sharpe={niftySharpe}
+          maxDrawdownPct={niftyMaxDrawdown}
           value={horizonResult.nifty_value}
           unavailable={dataUnavailable}
           tone="neutral"

@@ -234,6 +234,33 @@ def _cagr(start_value: float, end_value: float, start_date: pd.Timestamp, end_da
     return (end_value / start_value) ** (1 / years) - 1
 
 
+TRADING_DAYS_PER_YEAR = 252
+RISK_FREE_RATE_ANNUAL = 0.065  # ~ Indian 10Y G-Sec yield, used as the Sharpe excess-return baseline
+
+
+def _max_drawdown(wealth: pd.Series) -> float:
+    """Largest peak-to-trough decline over the window, as a negative fraction
+    (e.g. -0.23 = a 23% drawdown from the running high)."""
+    if len(wealth) < 2:
+        return float("nan")
+    running_max = wealth.cummax()
+    drawdown = wealth / running_max - 1.0
+    return float(drawdown.min())
+
+
+def _sharpe_ratio(wealth: pd.Series, risk_free_annual: float = RISK_FREE_RATE_ANNUAL) -> float:
+    """Annualized Sharpe ratio computed from the daily returns implied by a wealth index."""
+    daily_returns = wealth.pct_change().dropna()
+    if len(daily_returns) < 2:
+        return float("nan")
+    daily_rf = risk_free_annual / TRADING_DAYS_PER_YEAR
+    excess = daily_returns - daily_rf
+    std = excess.std(ddof=1)
+    if std == 0 or np.isnan(std):
+        return float("nan")
+    return float((excess.mean() / std) * np.sqrt(TRADING_DAYS_PER_YEAR))
+
+
 def compute_horizon_returns(
     wealth_df: pd.DataFrame,
     start_date,
@@ -242,9 +269,9 @@ def compute_horizon_returns(
 ) -> dict:
     """
     Given a wealth-index DataFrame (anchored at start_date) compute point-to-point
-    % returns for the Custom Portfolio and Nifty 50 at T0+3M, T0+6M, T0+12M, T0+3Y
-    and T0+5Y. Horizons that haven't occurred yet (or precede the cached data)
-    return "Data Unavailable".
+    % returns for the Custom Portfolio and Nifty 50 at T0+3M, T0+6M, T0+12M, T0+3Y,
+    T0+5Y, and MAX (T0 through the last cached trading day). Horizons that haven't
+    occurred yet (or precede the cached data) return "Data Unavailable".
     """
     start_date = pd.Timestamp(start_date).normalize()
     today = pd.Timestamp(datetime.now().date())
@@ -280,16 +307,48 @@ def compute_horizon_returns(
         end_p, end_p_date = _nearest_trading_value(wealth_df[portfolio_col], target)
         end_n, end_n_date = _nearest_trading_value(wealth_df[benchmark_col], target)
 
+        portfolio_window = wealth_df.loc[start_p_date:end_p_date, portfolio_col]
+        nifty_window = wealth_df.loc[start_n_date:end_n_date, benchmark_col]
+
         results["horizons"][label] = {
             "portfolio_return": (end_p - start_p) / start_p,
             "nifty_return": (end_n - start_n) / start_n,
             "portfolio_cagr": _cagr(start_p, end_p, start_p_date, end_p_date),
             "nifty_cagr": _cagr(start_n, end_n, start_n_date, end_n_date),
+            "portfolio_sharpe": _sharpe_ratio(portfolio_window),
+            "nifty_sharpe": _sharpe_ratio(nifty_window),
+            "portfolio_max_drawdown": _max_drawdown(portfolio_window),
+            "nifty_max_drawdown": _max_drawdown(nifty_window),
             "target_date": str(target.date()),
             "actual_trading_day": str(end_p_date.date()),
             "portfolio_value": end_p,
             "nifty_value": end_n,
         }
+
+    # MAX: T0 through the last trading day actually in the cache, rather than a
+    # fixed calendar offset - lets the user backtest "as far as the data goes."
+    end_p_date = wealth_df[portfolio_col].index[-1]
+    end_p = float(wealth_df[portfolio_col].iloc[-1])
+    end_n_date = wealth_df[benchmark_col].index[-1]
+    end_n = float(wealth_df[benchmark_col].iloc[-1])
+
+    portfolio_window = wealth_df.loc[start_p_date:end_p_date, portfolio_col]
+    nifty_window = wealth_df.loc[start_n_date:end_n_date, benchmark_col]
+
+    results["horizons"]["MAX"] = {
+        "portfolio_return": (end_p - start_p) / start_p,
+        "nifty_return": (end_n - start_n) / start_n,
+        "portfolio_cagr": _cagr(start_p, end_p, start_p_date, end_p_date),
+        "nifty_cagr": _cagr(start_n, end_n, start_n_date, end_n_date),
+        "portfolio_sharpe": _sharpe_ratio(portfolio_window),
+        "nifty_sharpe": _sharpe_ratio(nifty_window),
+        "portfolio_max_drawdown": _max_drawdown(portfolio_window),
+        "nifty_max_drawdown": _max_drawdown(nifty_window),
+        "target_date": str(end_p_date.date()),
+        "actual_trading_day": str(end_p_date.date()),
+        "portfolio_value": end_p,
+        "nifty_value": end_n,
+    }
 
     return results
 
@@ -371,13 +430,23 @@ def print_report(
     print(f"Actual trading day used: {horizon_results['start_date_actual_trading_day']}")
 
     print("\n--- Point-to-Point Returns (Custom Portfolio vs Nifty 50) ---")
-    header = f"{'Horizon':<8}{'Portfolio Return':<20}{'Nifty 50 Return':<20}{'As Of':<12}"
+    header = (
+        f"{'Horizon':<8}{'Portfolio Return':<20}{'Nifty 50 Return':<20}"
+        f"{'Port. Sharpe':<14}{'Port. Max DD':<14}{'As Of':<12}"
+    )
     print(header)
     print("-" * len(header))
-    for label in ["3M", "6M", "12M", "3Y", "5Y"]:
+    for label in ["3M", "6M", "12M", "3Y", "5Y", "MAX"]:
         h = horizon_results["horizons"][label]
         as_of = h.get("actual_trading_day", h.get("target_date", "-"))
-        print(f"{label:<8}{_fmt_pct(h['portfolio_return']):<20}{_fmt_pct(h['nifty_return']):<20}{as_of:<12}")
+        sharpe = h.get("portfolio_sharpe")
+        max_dd = h.get("portfolio_max_drawdown")
+        sharpe_str = "-" if not isinstance(sharpe, float) or pd.isna(sharpe) else f"{sharpe:.2f}"
+        max_dd_str = "-" if not isinstance(max_dd, float) or pd.isna(max_dd) else f"{max_dd * 100:.2f}%"
+        print(
+            f"{label:<8}{_fmt_pct(h['portfolio_return']):<20}{_fmt_pct(h['nifty_return']):<20}"
+            f"{sharpe_str:<14}{max_dd_str:<14}{as_of:<12}"
+        )
 
     initial_investment = wealth_df["Custom_Portfolio"].iloc[0]
     final_portfolio_value = wealth_df["Custom_Portfolio"].iloc[-1]

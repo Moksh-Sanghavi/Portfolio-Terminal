@@ -12,7 +12,7 @@ import {
 import DatePicker from "./DatePicker";
 import type { HorizonKey, RebalanceFrequency, TickerInfo } from "../types";
 
-const HORIZONS: HorizonKey[] = ["3M", "6M", "12M", "3Y", "5Y"];
+const HORIZONS: HorizonKey[] = ["3M", "6M", "12M", "3Y", "5Y", "MAX"];
 const REBALANCE_OPTIONS: { label: string; value: RebalanceFrequency }[] = [
   { label: "Buy & Hold", value: null },
   { label: "Daily", value: "daily" },

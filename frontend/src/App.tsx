@@ -3,6 +3,7 @@ import { AlertTriangle, BarChart3, Grid3x3 } from "lucide-react";
 import Header from "./components/Header";
 import TerminalControls from "./components/TerminalControls";
 import HorizonChart from "./components/HorizonChart";
+import DrawdownChart from "./components/DrawdownChart";
 import MetricsGrid from "./components/MetricsGrid";
 import { fetchTickers, runBacktest } from "./api";
 import type { Theme } from "./colors";
@@ -258,7 +259,10 @@ export default function App() {
               </div>
 
               {activeTab === "chart" ? (
-                <HorizonChart data={chartData} noteBanner={noteBanner} theme={theme} />
+                <>
+                  <HorizonChart data={chartData} noteBanner={noteBanner} theme={theme} />
+                  <DrawdownChart data={chartData} theme={theme} />
+                </>
               ) : (
                 currentHorizonResult && (
                   <MetricsGrid
