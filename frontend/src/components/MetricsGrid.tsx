@@ -175,7 +175,7 @@ export default function MetricsGrid({ horizonResult, assetBreakdown }: MetricsGr
                     <td className="px-4 py-2.5 font-semibold text-zinc-200">
                       {row.ticker}
                     </td>
-                    <td className="px-4 py-2.5 text-zinc-400">{row.name}</td>
+                    <td className="px-4 py-2.5 font-medium text-zinc-300">{row.name}</td>
                     <td className="px-4 py-2.5 text-right tabular-nums text-zinc-300">
                       {row.weightPct.toFixed(2)}%
                     </td>

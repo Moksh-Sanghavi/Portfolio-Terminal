@@ -7,6 +7,7 @@ import MetricsGrid from "./components/MetricsGrid";
 import { fetchTickers, runBacktest } from "./api";
 import type { Theme } from "./colors";
 import type { BacktestResponse, HorizonKey, RebalanceFrequency, TickerInfo } from "./types";
+import { type HistoryEntry, clearHistory, loadHistory, removeHistoryEntry, saveHistoryEntry } from "./history";
 
 const THEME_STORAGE_KEY = "portfolio-terminal-theme";
 
@@ -60,6 +61,7 @@ export default function App() {
   const [result, setResult] = useState<BacktestResponse | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
 
   useEffect(() => {
     fetchTickers()
@@ -72,6 +74,13 @@ export default function App() {
     () => Object.fromEntries(universe.map((t) => [t.ticker, t.name])),
     [universe],
   );
+
+  // Earliest first_date across the whole cached universe - drives the
+  // DatePicker's year-jump dropdown so it only lists years we actually have data for.
+  const datasetMinDate = useMemo(() => {
+    if (universe.length === 0) return undefined;
+    return universe.reduce((min, t) => (t.first_date < min ? t.first_date : min), universe[0].first_date);
+  }, [universe]);
 
   const addTicker = (ticker: string) => {
     setPortfolio((prev) => (prev.includes(ticker) ? prev : [...prev, ticker]));
@@ -109,12 +118,36 @@ export default function App() {
       const activeWeights = Object.fromEntries(portfolio.map((t) => [t, weights[t] ?? 0]));
       const res = await runBacktest(activeWeights, startDate, rebalanceFrequency, initialInvestment);
       setResult(res);
+      setHistory(
+        saveHistoryEntry({
+          portfolio,
+          weights: activeWeights,
+          startDate,
+          rebalanceFrequency,
+          initialInvestment,
+          result: res,
+        }),
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Backtest failed.");
     } finally {
       setIsRunning(false);
     }
   };
+
+  const handleSelectHistory = (entry: HistoryEntry) => {
+    setPortfolio(entry.portfolio);
+    setWeights(entry.weights);
+    setStartDate(entry.startDate);
+    setRebalanceFrequency(entry.rebalanceFrequency);
+    setInitialInvestment(entry.initialInvestment);
+    setResult(entry.result);
+    setError(null);
+    setActiveTab("chart");
+  };
+
+  const handleRemoveHistory = (id: string) => setHistory(removeHistoryEntry(id));
+  const handleClearHistory = () => setHistory(clearHistory());
 
   const currentHorizonResult = result?.horizons[horizon];
   const dataUnavailable = currentHorizonResult
@@ -138,7 +171,14 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col bg-slate-950 text-zinc-100">
-      <Header theme={theme} onToggleTheme={toggleTheme} />
+      <Header
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        history={history}
+        onSelectHistory={handleSelectHistory}
+        onRemoveHistory={handleRemoveHistory}
+        onClearHistory={handleClearHistory}
+      />
       <div className="flex min-h-0 flex-1">
         <TerminalControls
           universe={universe}
@@ -152,6 +192,7 @@ export default function App() {
           onEqualWeights={equalWeights}
           startDate={startDate}
           onStartDateChange={setStartDate}
+          datasetMinDate={datasetMinDate}
           horizon={horizon}
           onHorizonChange={setHorizon}
           rebalanceFrequency={rebalanceFrequency}

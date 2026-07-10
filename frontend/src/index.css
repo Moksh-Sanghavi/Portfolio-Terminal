@@ -39,6 +39,11 @@ body {
   animation: pulse-flash 1.4s ease-in-out infinite;
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* ---------------------------------------------------------------------
    Light theme overrides.
    The app is built dark-first with Tailwind zinc/slate utility classes.
@@ -78,6 +83,7 @@ body {
 [data-theme="light"] .hover\:bg-zinc-800\/60:hover { background-color: rgba(203, 213, 225, 0.7); }
 [data-theme="light"] .hover\:bg-zinc-950\/40:hover { background-color: rgba(226, 232, 240, 0.5); }
 [data-theme="light"] .disabled\:bg-zinc-800:disabled { background-color: #e2e8f0; }
+[data-theme="light"] .hover\:bg-zinc-800:hover { background-color: #e2e8f0; }
 
 /* Borders */
 [data-theme="light"] .border-zinc-700 { border-color: #cbd5e1; }
@@ -95,7 +101,9 @@ body {
 [data-theme="light"] .text-zinc-500 { color: #64748b; }
 [data-theme="light"] .text-zinc-600 { color: #94a3b8; }
 [data-theme="light"] .text-zinc-700 { color: #cbd5e1; }
+[data-theme="light"] .text-zinc-800 { color: #cbd5e1; }
 [data-theme="light"] .text-slate-300 { color: #334155; }
+[data-theme="light"] .hover\:text-zinc-100:hover { color: #0f172a; }
 [data-theme="light"] .hover\:text-zinc-200:hover { color: #0f172a; }
 [data-theme="light"] .hover\:text-zinc-300:hover { color: #1e293b; }
 [data-theme="light"] .disabled\:text-zinc-600:disabled { color: #94a3b8; }

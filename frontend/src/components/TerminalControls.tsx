@@ -9,6 +9,7 @@ import {
   IndianRupee,
   
 } from "lucide-react";
+import DatePicker from "./DatePicker";
 import type { HorizonKey, RebalanceFrequency, TickerInfo } from "../types";
 
 const HORIZONS: HorizonKey[] = ["3M", "6M", "12M", "3Y", "5Y"];
@@ -31,6 +32,7 @@ interface TerminalControlsProps {
   onEqualWeights: () => void;
   startDate: string;
   onStartDateChange: (date: string) => void;
+  datasetMinDate?: string;
   horizon: HorizonKey;
   onHorizonChange: (h: HorizonKey) => void;
   rebalanceFrequency: RebalanceFrequency;
@@ -81,6 +83,7 @@ export default function TerminalControls({
   onEqualWeights,
   startDate,
   onStartDateChange,
+  datasetMinDate,
   horizon,
   onHorizonChange,
   rebalanceFrequency,
@@ -157,7 +160,7 @@ export default function TerminalControls({
                         <span className="block text-xs font-semibold text-zinc-200">
                           {t.ticker}
                         </span>
-                        <span className="block truncate text-[14px] text-zinc-500">{t.name}</span>
+                        <span className="block truncate text-[14px] font-medium text-zinc-400">{t.name}</span>
                       </span>
                       <Plus className="h-3.5 w-3.5 shrink-0 text-emerald-500" strokeWidth={2.5} />
                     </button>
@@ -203,7 +206,7 @@ export default function TerminalControls({
                   <div className="truncate text-sm font-semibold text-zinc-200">
                     {ticker}
                   </div>
-                  <div className="truncate text-xs text-zinc-500">
+                  <div className="truncate text-xs font-medium text-zinc-400">
                     {tickerNameLookup[ticker] ?? ""}
                   </div>
                 </div>
@@ -275,13 +278,7 @@ export default function TerminalControls({
         <label className="mb-1.5 block text-[14px] font-semibold uppercase tracking-wider text-zinc-500">
           Start Date (T&#8320;)
         </label>
-        <input
-          type="date"
-          value={startDate}
-          max={today}
-          onChange={(e) => onStartDateChange(e.target.value)}
-          className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-sm tabular-nums text-zinc-200 outline-none transition-colors focus:border-emerald-600 [color-scheme:dark]"
-        />
+        <DatePicker value={startDate} onChange={onStartDateChange} max={today} min={datasetMinDate} />
       </div>
 
       <div className="mt-5">
